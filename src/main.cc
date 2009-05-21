@@ -2,9 +2,34 @@
 
 #include <fstream>
 #include <iostream>
+#include <map>
 #include <sstream>
 
 #include "pstream.h"
+
+std::map<std::string, std::string> loadEEnvironment(paludis::FSEntry& vdb_dir)
+{
+	std::map<std::string, std::string> envVars;
+	std::ostringstream bunzip2_cmd_ss;
+	std::string input_line;
+	bunzip2_cmd_ss << "bzip2 -dc " << vdb_dir << "/environment.bz2";
+//	std::cout << bunzip2_cmd_ss.str() << std::endl;
+	redi::ipstream bunzip2_input(bunzip2_cmd_ss.str());
+	while(getline(bunzip2_input, input_line))
+	{
+		if(input_line.length() > 0)
+		{
+//			std::cout << input_line << std::endl;
+			int equalPos = input_line.find("=");
+			if(equalPos != std::string::npos)
+			{
+//				std::cout << input_line.substr(0, equalPos) << " = " << input_line.substr(equalPos + 1) << std::endl;
+				envVars[input_line.substr(0, equalPos)] = input_line.substr(equalPos + 1);
+			}
+		}
+	}
+	return envVars;
+}
 
 int main(int argc, char * argv[])
 {
@@ -12,38 +37,76 @@ int main(int argc, char * argv[])
     std::vector<std::tr1::shared_ptr<const paludis::PackageID> > pkg_to_rebuild;
     std::tr1::shared_ptr<paludis::Environment> env(paludis::EnvironmentFactory::get_instance()->create(MERCommandLine::get_instance()->a_environment.argument()));
     std::tr1::shared_ptr<paludis::PackageIDSequence> ids = (*env)[paludis::selection::AllVersionsSorted(paludis::generator::InRepository(paludis::RepositoryName("installed")))];
+//    std::cout << env->distribution() << std::endl;
     for(paludis::PackageIDSequence::ConstIterator pkgID(ids->begin()), pkgID_end(ids->end()); pkgID != pkgID_end; ++pkgID)
     {
+//    	std::cout << (*pkgID)->canonical_form(paludis::idcf_full) << std::endl;
         paludis::FSEntry vdb_dir((*pkgID)->fs_location_key()->value());
-        std::ostringstream E_installed_name_ss;
-        E_installed_name_ss << (*pkgID)->name().package() << "-" << (*pkgID)->version() << ".*";
-        std::ostringstream find_cmd_ss;
-        find_cmd_ss << "find " << vdb_dir << " -iname " << E_installed_name_ss.str();
-        redi::ipstream find_input(find_cmd_ss.str());
-        std::string E_installed_path;
-        find_input >> E_installed_path;
-        const std::tr1::shared_ptr<const paludis::MetadataCollectionKey<paludis::Set<std::string > > > from_repo_key((*pkgID)->from_repositories_key());
-        std::string from_repo_name(paludis::join(from_repo_key->value()->begin(), from_repo_key->value()->end(), " "));
-        paludis::VersionRequirement pkg_version_req = { paludis::value_for<paludis::n::version_operator>(paludis::VersionOperator("=")), paludis::value_for<paludis::n::version_spec>((*pkgID)->version()) };
-        try
-        {
-            std::tr1::shared_ptr<paludis::PackageIDSequence> from_ids = (*env)[paludis::selection::RequireExactlyOne(paludis::generator::Matches(paludis::make_package_dep_spec().package((*pkgID)->name()).version_requirement(pkg_version_req).in_repository(paludis::RepositoryName(from_repo_name)), paludis::MatchPackageOptions()))];
-            for(paludis::PackageIDSequence::ConstIterator pkgID_from(from_ids->begin()), pkgID_from_end(from_ids->end()); pkgID_from != pkgID_from_end; ++pkgID_from)
-            {
-                paludis::FSEntry Epath((*pkgID_from)->fs_location_key()->value());
-                std::ostringstream diff_cmd_ss;
-                diff_cmd_ss << "diff -Nu " << E_installed_path << " " << Epath << " | wc -l";
-                redi::ipstream diff_input(diff_cmd_ss.str());
-                int diff_lines = 0;
-                diff_input >> diff_lines;
-                if(diff_lines > 0)
-                    pkg_to_rebuild.push_back(*pkgID_from);
-            }
-        }
-        catch(const paludis::DidNotGetExactlyOneError& e)
-        {
-            std::cerr << e.message() << std::endl;
-        }
+		std::map<std::string, std::string> environment = loadEEnvironment(vdb_dir);
+		paludis::FSEntry E_installed_path(vdb_dir);
+		std::ostringstream Ename;
+		if(env->distribution() == "gentoo")
+			Ename << (*pkgID)->name().package() << "-" << (*pkgID)->version() << ".ebuild";
+		else
+			Ename << (*pkgID)->name().package() << "-" << (*pkgID)->version() << "." << environment["EAPI"];
+		E_installed_path /= Ename.str();
+//		std::cout << E_installed_path << std::endl;
+		paludis::FSEntry E_from_repo_path(environment["EBUILD"]);
+//		std::cout << E_from_repo_path << std::endl;
+		std::ostringstream diff_cmd_ss;
+		diff_cmd_ss << "diff -Nu " << E_installed_path << " " << E_from_repo_path << " | wc -l";
+		redi::ipstream diff_input(diff_cmd_ss.str());
+		int diff_lines_Esource = 0;
+		diff_input >> diff_lines_Esource;
+//		std::cout << "diff_lines_Esource = " << diff_lines_Esource << std::endl;
+		int diff_Elibs = 0;
+		std::istringstream Elibs_dirs;
+		std::istringstream Elibs_names;
+		if(env->distribution() == "gentoo")
+			Elibs_dirs.str(environment["ECLASSDIRS"].substr(environment["ECLASSDIRS"].find_first_not_of(" '$"), environment["ECLASSDIRS"].find_last_not_of(" '$") - environment["ECLASSDIRS"].find_first_not_of(" '$") + 1));
+		else
+			Elibs_dirs.str(environment["EXLIBSDIRS"].substr(environment["EXLIBSDIRS"].find_first_not_of(" '$"), environment["EXLIBSDIRS"].find_last_not_of(" '$") - environment["EXLIBSDIRS"].find_first_not_of(" '$") + 1));
+//		std::cout << Elibs_dirs.str() << std::endl;
+		if(environment.find("INHERITED") != environment.end())
+		{
+			Elibs_names.str(environment["INHERITED"].substr(environment["INHERITED"].find_first_not_of(" '$"), environment["INHERITED"].find_last_not_of(" '$") - environment["INHERITED"].find_first_not_of(" '$") + 1));
+			std::string dir;
+			while(Elibs_dirs >> dir)
+			{
+				std::string name;
+				while(Elibs_names >> name)
+				{
+					paludis::FSEntry Elib_entry(dir);
+					if(env->distribution() == "gentoo")
+						Elib_entry /= name + ".eclass";
+					else
+						Elib_entry /= name + ".exlib";
+//					std::cout << Elib_entry << "(" << std::boolalpha << Elib_entry.exists() << std::noboolalpha << ")" << std::endl;
+					if(Elib_entry.exists())
+					{
+//						std::cout << Elib_entry.mtime() << "|" << E_installed_path.mtime() << std::endl;
+						if(Elib_entry.mtime() > E_installed_path.mtime())
+							diff_Elibs++;
+					}
+				}
+			}
+		}
+//		std::cout << "diff_Elibs = " << diff_Elibs << std::endl;
+		if(diff_lines_Esource > 0 || diff_Elibs > 0)
+		{
+			std::tr1::shared_ptr<paludis::PackageIDSequence> pkgIDFromSequence((*env)[paludis::selection::AllVersionsSorted(paludis::generator::Intersection(
+																						  paludis::generator::Package((*pkgID)->name()),
+																						  paludis::generator::InRepository(paludis::RepositoryName(environment["REPOSITORY"]))) |
+																					  paludis::filter::SameSlot((*pkgID))
+																					  )]);
+			std::tr1::shared_ptr<const paludis::PackageID> pkgIDFrom;
+			for(paludis::PackageIDSequence::ConstIterator fromPkgID(pkgIDFromSequence->begin()), fromPkgID_end(pkgIDFromSequence->end()); fromPkgID != fromPkgID_end; ++fromPkgID)
+			{
+				if((*fromPkgID)->version() == (*pkgID)->version())
+					pkgIDFrom = *fromPkgID;
+			}
+			pkg_to_rebuild.push_back(pkgIDFrom);
+		}
     }
     for(std::vector<std::tr1::shared_ptr<const paludis::PackageID> >::iterator pkg(pkg_to_rebuild.begin()), pkg_end(pkg_to_rebuild.end()); pkg != pkg_end; ++pkg)
         std::cout << (*pkg)->canonical_form(paludis::idcf_full) << std::endl;
