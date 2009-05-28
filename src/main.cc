@@ -114,12 +114,22 @@ int main(int argc, char * argv[])
 		std::cout << "Nothing to rebuild" << std::endl;
 	else
 	{
+		std::cout << pkg_to_rebuild.size() << " packages to rebuild" << std::endl;
+		int arg_first = MERCommandLine::get_instance()->a_take_nth_first.specified() ? MERCommandLine::get_instance()->a_take_nth_first.argument() : 0;
+		if(arg_first > 0)
+			std::cout << "Rebuilding the " << arg_first << " firsts..." << std::endl;
 		std::ostringstream paludis_command_ss;
 		paludis_command_ss << "paludis -pi1";
 		if(MERCommandLine::get_instance()->a_resume_command_template.specified())
 			paludis_command_ss << " --" << MERCommandLine::get_instance()->a_resume_command_template.long_name() << " " << MERCommandLine::get_instance()->a_resume_command_template.argument();
+		int count = 0;
 		for(std::vector<std::tr1::shared_ptr<const paludis::PackageID> >::iterator pkg(pkg_to_rebuild.begin()), pkg_end(pkg_to_rebuild.end()); pkg != pkg_end; ++pkg)
+		{
 			paludis_command_ss << " '=" << (*pkg)->canonical_form(paludis::idcf_full) << "'";
+			count++;
+			if(arg_first > 0 && count == arg_first)
+				break;
+		}
 		std::cout << paludis_command_ss.str() << std::endl;
 		if(paludis::run_command(paludis::Command(paludis_command_ss.str())) == 0)
 			std::cout << "Paludis command ran successfully" << std::endl;
