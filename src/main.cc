@@ -115,8 +115,8 @@ int main(int argc, char * argv[])
 	else
 	{
 		std::cout << pkg_to_rebuild.size() << " packages to rebuild" << std::endl;
-		int arg_first = MERCommandLine::get_instance()->a_take_nth_first.specified() ? MERCommandLine::get_instance()->a_take_nth_first.argument() : 0;
-		if(arg_first > 0)
+		int arg_first = MERCommandLine::get_instance()->a_take_first.specified() ? MERCommandLine::get_instance()->a_take_first.argument() : 0;
+		if(arg_first > 0 && pkg_to_rebuild.size() > arg_first)
 			std::cout << "Rebuilding the " << arg_first << " firsts..." << std::endl;
 		std::ostringstream paludis_command_ss;
 		paludis_command_ss << "paludis -pi1";
