@@ -20,7 +20,7 @@ std::map<std::string, std::string> loadEEnvironment(paludis::FSEntry& vdb_dir)
 		if(input_line.length() > 0)
 		{
 //			std::cout << input_line << std::endl;
-			int equalPos = input_line.find("=");
+			unsigned int equalPos = input_line.find("=");
 			if(equalPos != std::string::npos)
 			{
 //				std::cout << input_line.substr(0, equalPos) << " = " << input_line.substr(equalPos + 1) << std::endl;
@@ -54,8 +54,12 @@ int main(int argc, char * argv[])
 		paludis::FSEntry E_from_repo_path(environment["EBUILD"]);
 //		std::cout << E_from_repo_path << std::endl;
 		std::ostringstream diff_cmd_ss;
-		diff_cmd_ss << "diff -Nu " << E_installed_path << " " << E_from_repo_path << " | wc -l";
-		redi::ipstream diff_input(diff_cmd_ss.str());
+		redi::ipstream diff_input;
+		if(E_from_repo_path.exists())
+		{
+			diff_cmd_ss << "diff -Nu " << E_installed_path << " " << E_from_repo_path << " | wc -l";
+			diff_input.open(diff_cmd_ss.str());
+		}
 		int diff_lines_Esource = 0;
 		diff_input >> diff_lines_Esource;
 //		std::cout << "diff_lines_Esource = " << diff_lines_Esource << std::endl;
@@ -92,7 +96,7 @@ int main(int argc, char * argv[])
 			}
 		}
 //		std::cout << "diff_Elibs = " << diff_Elibs << std::endl;
-		if(diff_lines_Esource > 0 || diff_Elibs > 0)
+		if(E_from_repo_path.exists() && (diff_lines_Esource > 0 || diff_Elibs > 0))
 		{
 			std::tr1::shared_ptr<paludis::PackageIDSequence> pkgIDFromSequence((*env)[paludis::selection::AllVersionsSorted(paludis::generator::Intersection(
 																						  paludis::generator::Package((*pkgID)->name()),
@@ -109,20 +113,20 @@ int main(int argc, char * argv[])
 		}
     }
     for(std::vector<std::tr1::shared_ptr<const paludis::PackageID> >::iterator pkg(pkg_to_rebuild.begin()), pkg_end(pkg_to_rebuild.end()); pkg != pkg_end; ++pkg)
-        std::cout << (*pkg)->canonical_form(paludis::idcf_full) << std::endl;
+		std::cout << (*pkg)->canonical_form(paludis::idcf_full) << std::endl;
 	if(pkg_to_rebuild.size() == 0)
 		std::cout << "Nothing to rebuild" << std::endl;
 	else
 	{
 		std::cout << pkg_to_rebuild.size() << " packages to rebuild" << std::endl;
-		int arg_first = MERCommandLine::get_instance()->a_take_first.specified() ? MERCommandLine::get_instance()->a_take_first.argument() : 0;
+		unsigned int arg_first = MERCommandLine::get_instance()->a_take_first.specified() ? MERCommandLine::get_instance()->a_take_first.argument() : 0;
 		if(arg_first > 0 && pkg_to_rebuild.size() > arg_first)
 			std::cout << "Rebuilding the " << arg_first << " firsts..." << std::endl;
 		std::ostringstream paludis_command_ss;
 		paludis_command_ss << "paludis -pi1";
 		if(MERCommandLine::get_instance()->a_resume_command_template.specified())
 			paludis_command_ss << " --" << MERCommandLine::get_instance()->a_resume_command_template.long_name() << " " << MERCommandLine::get_instance()->a_resume_command_template.argument();
-		int count = 0;
+		unsigned int count = 0;
 		for(std::vector<std::tr1::shared_ptr<const paludis::PackageID> >::iterator pkg(pkg_to_rebuild.begin()), pkg_end(pkg_to_rebuild.end()); pkg != pkg_end; ++pkg)
 		{
 			paludis_command_ss << " '=" << (*pkg)->canonical_form(paludis::idcf_full) << "'";
