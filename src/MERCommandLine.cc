@@ -7,11 +7,11 @@ template class paludis::InstantiationPolicy<MERCommandLine, paludis::instantiati
 MERCommandLine::MERCommandLine() :
     ArgsHandler(),
 
-    action_args(this, "Actions", "Selects which basic action to perform. At most one action should be specified."),
+    action_args(this->main_options_section(), "Actions", "Selects which basic action to perform. At most one action should be specified."),
     a_version(&action_args, "version", 'V',  "Display program version", false),
     a_help(&action_args, "help", 'h',  "Display program help", false),
 
-    general_args(this, "General options", "Options which are relevant for most or all actions."),
+    general_args(this->main_options_section(), "General options", "Options which are relevant for most or all actions."),
     a_log_level(&general_args, "log-level", '\0'),
     a_environment(&general_args, "environment", 'E', "Environment specification (class:suffix, both parts optional)"),
     a_resume_command_template(&general_args, "resume-command-template", '\0', "Save the resume command to a file. If the filename contains 'XXXXXX', use mkstemp(3) to generate the filename"),
