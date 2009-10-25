@@ -123,7 +123,9 @@ int main(int argc, char * argv[])
 		if(arg_first > 0 && pkg_to_rebuild.size() > arg_first)
 			std::cout << "Rebuilding the " << arg_first << " firsts..." << std::endl;
 		std::ostringstream paludis_command_ss;
-		paludis_command_ss << "paludis -pi1";
+		paludis_command_ss << "paludis --pretend --install --preserve-world";
+		if(MERCommandLine::get_instance()->a_log_level.specified())
+			paludis_command_ss << " --" << MERCommandLine::get_instance()->a_log_level.long_name() << " " << MERCommandLine::get_instance()->a_log_level.argument();
 		if(MERCommandLine::get_instance()->a_resume_command_template.specified())
 			paludis_command_ss << " --" << MERCommandLine::get_instance()->a_resume_command_template.long_name() << " " << MERCommandLine::get_instance()->a_resume_command_template.argument();
 		unsigned int count = 0;
