@@ -96,7 +96,26 @@ int main(int argc, char * argv[])
 			}
 		}
 //		std::cout << "diff_Elibs = " << diff_Elibs << std::endl;
-		if(E_from_repo_path.exists() && (diff_lines_Esource > 0 || diff_Elibs > 0))
+		std::ostringstream E_from_repo_patches_str;
+		if(env->distribution() == "gentoo")
+			E_from_repo_patches_str << environment["FILESDIR"];
+		else
+			E_from_repo_patches_str << environment["FILES"];
+		paludis::FSEntry E_from_repo_patches(E_from_repo_patches_str.str());
+		int diff_patches = 0;
+		if(E_from_repo_patches.exists())
+		{
+			for(paludis::DirIterator di(E_from_repo_patches), di_end; di != di_end; di++)
+			{
+				if(di->mtime() > E_installed_path.mtime())
+				{
+//					std::cout << *di << " mtime : " << di->mtime() << std::endl;
+//					std::cout << E_installed_path << " mtime : " << E_installed_path.mtime() << std::endl;
+					diff_patches++;
+				}
+			}
+		}
+		if(E_from_repo_path.exists() && (diff_lines_Esource > 0 || diff_Elibs > 0 || diff_patches > 0))
 		{
 			std::tr1::shared_ptr<paludis::PackageIDSequence> pkgIDFromSequence((*env)[paludis::selection::AllVersionsSorted(paludis::generator::Intersection(
 																						  paludis::generator::Package((*pkgID)->name()),
