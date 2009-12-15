@@ -88,8 +88,8 @@ int main(int argc, char * argv[])
 //					std::cout << Elib_entry << "(" << std::boolalpha << Elib_entry.exists() << std::noboolalpha << ")" << std::endl;
 					if(Elib_entry.exists())
 					{
-//						std::cout << Elib_entry.mtime() << "|" << E_installed_path.mtime() << std::endl;
-						if(Elib_entry.mtime() > E_installed_path.mtime())
+//						std::cout << Elib_entry.mtim() << "|" << E_installed_path.mtim() << std::endl;
+						if(E_installed_path.mtim() < Elib_entry.mtim())
 							diff_Elibs++;
 					}
 				}
@@ -107,10 +107,10 @@ int main(int argc, char * argv[])
 		{
 			for(paludis::DirIterator di(E_from_repo_patches), di_end; di != di_end; di++)
 			{
-				if(di->mtime() > E_installed_path.mtime())
+				if(E_installed_path.mtim() < di->mtim())
 				{
-//					std::cout << *di << " mtime : " << di->mtime() << std::endl;
-//					std::cout << E_installed_path << " mtime : " << E_installed_path.mtime() << std::endl;
+//					std::cout << *di << " mtime : " << di->mtim() << std::endl;
+//					std::cout << E_installed_path << " mtime : " << E_installed_path.mtim() << std::endl;
 					diff_patches++;
 				}
 			}
