@@ -142,11 +142,21 @@ int main(int argc, char * argv[])
 		if(arg_first > 0 && pkg_to_rebuild.size() > arg_first)
 			std::cout << "Rebuilding the " << arg_first << " firsts..." << std::endl;
 		std::ostringstream paludis_command_ss;
-		paludis_command_ss << "paludis --pretend --install --preserve-world";
-		if(MERCommandLine::get_instance()->a_log_level.specified())
-			paludis_command_ss << " --" << MERCommandLine::get_instance()->a_log_level.long_name() << " " << MERCommandLine::get_instance()->a_log_level.argument();
-		if(MERCommandLine::get_instance()->a_resume_command_template.specified())
-			paludis_command_ss << " --" << MERCommandLine::get_instance()->a_resume_command_template.long_name() << " " << MERCommandLine::get_instance()->a_resume_command_template.argument();
+		if(env->distribution() == "exherbo")
+		{
+			paludis_command_ss << "cave";
+			if(MERCommandLine::get_instance()->a_log_level.specified())
+				paludis_command_ss << " --" << MERCommandLine::get_instance()->a_log_level.long_name() << " " << MERCommandLine::get_instance()->a_log_level.argument();
+			paludis_command_ss << " resolve --preserve-world";
+		}
+		else
+		{
+			paludis_command_ss << "paludis --pretend --install --preserve-world";
+			if(MERCommandLine::get_instance()->a_log_level.specified())
+				paludis_command_ss << " --" << MERCommandLine::get_instance()->a_log_level.long_name() << " " << MERCommandLine::get_instance()->a_log_level.argument();
+			if(MERCommandLine::get_instance()->a_resume_command_template.specified())
+				paludis_command_ss << " --" << MERCommandLine::get_instance()->a_resume_command_template.long_name() << " " << MERCommandLine::get_instance()->a_resume_command_template.argument();
+		}
 		unsigned int count = 0;
 		for(std::vector<std::tr1::shared_ptr<const paludis::PackageID> >::iterator pkg(pkg_to_rebuild.begin()), pkg_end(pkg_to_rebuild.end()); pkg != pkg_end; ++pkg)
 		{
@@ -155,9 +165,16 @@ int main(int argc, char * argv[])
 			if(arg_first > 0 && count == arg_first)
 				break;
 		}
-		std::cout << paludis_command_ss.str() << std::endl;
 		if(paludis::run_command(paludis::Command(paludis_command_ss.str())) == 0)
+		{
 			std::cout << "Paludis command ran successfully" << std::endl;
+			if(MERCommandLine::get_instance()->a_dump_command.specified())
+			{
+				std::cout << std::endl;
+				std::cout << "Build command: " << std::endl;
+				std::cout << paludis_command_ss.str() << std::endl;
+			}
+		}
 		else
 			std::cout << "Paludis command didn't run successfully" << std::endl;
 	}

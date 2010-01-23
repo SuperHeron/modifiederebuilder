@@ -14,6 +14,7 @@ MERCommandLine::MERCommandLine() :
     general_args(this->main_options_section(), "General options", "Options which are relevant for most or all actions."),
     a_log_level(&general_args, "log-level", '\0'),
     a_environment(&general_args, "environment", 'E', "Environment specification (class:suffix, both parts optional)"),
+	a_dump_command(&general_args, "dump-command", '\0', "Dump build command at end of MER process (if successful)", false),
     a_resume_command_template(&general_args, "resume-command-template", '\0', "Save the resume command to a file. If the filename contains 'XXXXXX', use mkstemp(3) to generate the filename"),
     a_take_first(&general_args, "take-first", '\0', "Take the n first paquets")
 {}
