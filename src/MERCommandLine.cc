@@ -2,7 +2,7 @@
 
 #include <iostream>
 
-template class paludis::InstantiationPolicy<MERCommandLine, paludis::instantiation_method::SingletonTag>;
+template class paludis::Singleton<MERCommandLine>;
 
 MERCommandLine::MERCommandLine() :
     ArgsHandler(),

@@ -7,9 +7,9 @@
 
 class MERCommandLine :
     public paludis::args::ArgsHandler,
-    public paludis::InstantiationPolicy<MERCommandLine, paludis::instantiation_method::SingletonTag>
+    public paludis::Singleton<MERCommandLine>
 {
-    friend class paludis::InstantiationPolicy<MERCommandLine, paludis::instantiation_method::SingletonTag>;
+    friend class paludis::Singleton<MERCommandLine>;
 
     private:
         MERCommandLine();
