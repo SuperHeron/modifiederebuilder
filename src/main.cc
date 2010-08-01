@@ -34,9 +34,9 @@ std::map<std::string, std::string> loadEEnvironment(paludis::FSEntry& vdb_dir)
 int main(int argc, char * argv[])
 {
     MERCommandLine::get_instance()->run(argc, argv, "mer", "MER_OPTIONS", "MER_CMDLINE");
-    std::vector<std::tr1::shared_ptr<const paludis::PackageID> > pkg_to_rebuild;
-    std::tr1::shared_ptr<paludis::Environment> env(paludis::EnvironmentFactory::get_instance()->create(MERCommandLine::get_instance()->a_environment.argument()));
-    std::tr1::shared_ptr<paludis::PackageIDSequence> ids = (*env)[paludis::selection::AllVersionsSorted(paludis::generator::InRepository(paludis::RepositoryName("installed")))];
+    std::vector<std::shared_ptr<const paludis::PackageID> > pkg_to_rebuild;
+    std::shared_ptr<paludis::Environment> env(paludis::EnvironmentFactory::get_instance()->create(MERCommandLine::get_instance()->a_environment.argument()));
+    std::shared_ptr<paludis::PackageIDSequence> ids = (*env)[paludis::selection::AllVersionsSorted(paludis::generator::InRepository(paludis::RepositoryName("installed")))];
 //    std::cout << env->distribution() << std::endl;
     for(paludis::PackageIDSequence::ConstIterator pkgID(ids->begin()), pkgID_end(ids->end()); pkgID != pkgID_end; ++pkgID)
     {
@@ -117,12 +117,12 @@ int main(int argc, char * argv[])
 		}
 		if(E_from_repo_path.exists() && (diff_lines_Esource > 0 || diff_Elibs > 0 || diff_patches > 0))
 		{
-			std::tr1::shared_ptr<paludis::PackageIDSequence> pkgIDFromSequence((*env)[paludis::selection::AllVersionsSorted(paludis::generator::Intersection(
+			std::shared_ptr<paludis::PackageIDSequence> pkgIDFromSequence((*env)[paludis::selection::AllVersionsSorted(paludis::generator::Intersection(
 																						  paludis::generator::Package((*pkgID)->name()),
 																						  paludis::generator::InRepository(paludis::RepositoryName(environment["REPOSITORY"]))) |
 																					  paludis::filter::SameSlot((*pkgID))
 																					  )]);
-			std::tr1::shared_ptr<const paludis::PackageID> pkgIDFrom;
+			std::shared_ptr<const paludis::PackageID> pkgIDFrom;
 			for(paludis::PackageIDSequence::ConstIterator fromPkgID(pkgIDFromSequence->begin()), fromPkgID_end(pkgIDFromSequence->end()); fromPkgID != fromPkgID_end; ++fromPkgID)
 			{
 				if((*fromPkgID)->version() == (*pkgID)->version())
@@ -131,7 +131,7 @@ int main(int argc, char * argv[])
 			pkg_to_rebuild.push_back(pkgIDFrom);
 		}
     }
-    for(std::vector<std::tr1::shared_ptr<const paludis::PackageID> >::iterator pkg(pkg_to_rebuild.begin()), pkg_end(pkg_to_rebuild.end()); pkg != pkg_end; ++pkg)
+    for(std::vector<std::shared_ptr<const paludis::PackageID> >::iterator pkg(pkg_to_rebuild.begin()), pkg_end(pkg_to_rebuild.end()); pkg != pkg_end; ++pkg)
 		std::cout << (*pkg)->canonical_form(paludis::idcf_full) << std::endl;
 	if(pkg_to_rebuild.size() == 0)
 		std::cout << "Nothing to rebuild" << std::endl;
@@ -158,7 +158,7 @@ int main(int argc, char * argv[])
 				paludis_command_ss << " --" << MERCommandLine::get_instance()->a_resume_command_template.long_name() << " " << MERCommandLine::get_instance()->a_resume_command_template.argument();
 		}
 		unsigned int count = 0;
-		for(std::vector<std::tr1::shared_ptr<const paludis::PackageID> >::iterator pkg(pkg_to_rebuild.begin()), pkg_end(pkg_to_rebuild.end()); pkg != pkg_end; ++pkg)
+		for(std::vector<std::shared_ptr<const paludis::PackageID> >::iterator pkg(pkg_to_rebuild.begin()), pkg_end(pkg_to_rebuild.end()); pkg != pkg_end; ++pkg)
 		{
 			paludis_command_ss << " '=" << (*pkg)->canonical_form(paludis::idcf_full) << "'";
 			count++;
