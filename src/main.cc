@@ -7,7 +7,7 @@
 
 #include "pstream.h"
 
-std::map<std::string, std::string> loadEEnvironment(paludis::FSEntry& vdb_dir)
+std::map<std::string, std::string> loadEEnvironment(paludis::FSPath& vdb_dir)
 {
 	std::map<std::string, std::string> envVars;
 	std::ostringstream bunzip2_cmd_ss;
@@ -41,9 +41,9 @@ int main(int argc, char * argv[])
     for(paludis::PackageIDSequence::ConstIterator pkgID(ids->begin()), pkgID_end(ids->end()); pkgID != pkgID_end; ++pkgID)
     {
 //    	std::cout << (*pkgID)->canonical_form(paludis::idcf_full) << std::endl;
-        paludis::FSEntry vdb_dir((*pkgID)->fs_location_key()->value());
+        paludis::FSPath vdb_dir((*pkgID)->fs_location_key()->value());
 		std::map<std::string, std::string> environment = loadEEnvironment(vdb_dir);
-		paludis::FSEntry E_installed_path(vdb_dir);
+		paludis::FSPath E_installed_path(vdb_dir);
 		std::ostringstream Ename;
 		if(env->distribution() == "gentoo")
 			Ename << (*pkgID)->name().package() << "-" << (*pkgID)->version() << ".ebuild";
@@ -51,11 +51,11 @@ int main(int argc, char * argv[])
 			Ename << (*pkgID)->name().package() << "-" << (*pkgID)->version() << "." << environment["EAPI"];
 		E_installed_path /= Ename.str();
 //		std::cout << E_installed_path << std::endl;
-		paludis::FSEntry E_from_repo_path(environment["EBUILD"]);
+		paludis::FSPath E_from_repo_path(environment["EBUILD"]);
 //		std::cout << E_from_repo_path << std::endl;
 		std::ostringstream diff_cmd_ss;
 		redi::ipstream diff_input;
-		if(E_from_repo_path.exists())
+		if(E_from_repo_path.stat().exists())
 		{
 			diff_cmd_ss << "diff -Nu " << E_installed_path << " " << E_from_repo_path << " | wc -l";
 			diff_input.open(diff_cmd_ss.str());
@@ -80,16 +80,16 @@ int main(int argc, char * argv[])
 				std::string name;
 				while(Elibs_names >> name)
 				{
-					paludis::FSEntry Elib_entry(dir);
+					paludis::FSPath Elib_entry(dir);
 					if(env->distribution() == "gentoo")
 						Elib_entry /= name + ".eclass";
 					else
 						Elib_entry /= name + ".exlib";
 //					std::cout << Elib_entry << "(" << std::boolalpha << Elib_entry.exists() << std::noboolalpha << ")" << std::endl;
-					if(Elib_entry.exists())
+					if(Elib_entry.stat().exists())
 					{
 //						std::cout << Elib_entry.mtim() << "|" << E_installed_path.mtim() << std::endl;
-						if(E_installed_path.mtim() < Elib_entry.mtim())
+						if(E_installed_path.stat().mtim() < Elib_entry.stat().mtim())
 							diff_Elibs++;
 					}
 				}
@@ -101,13 +101,13 @@ int main(int argc, char * argv[])
 			E_from_repo_patches_str << environment["FILESDIR"];
 		else
 			E_from_repo_patches_str << environment["FILES"];
-		paludis::FSEntry E_from_repo_patches(E_from_repo_patches_str.str());
+		paludis::FSPath E_from_repo_patches(E_from_repo_patches_str.str());
 		int diff_patches = 0;
-		if(E_from_repo_patches.exists())
+		if(E_from_repo_patches.stat().exists())
 		{
-			for(paludis::DirIterator di(E_from_repo_patches), di_end; di != di_end; di++)
+			for(paludis::FSIterator fsi(E_from_repo_patches, {}), fsi_end; fsi != fsi_end; fsi++)
 			{
-				if(E_installed_path.mtim() < di->mtim())
+				if(E_installed_path.stat().mtim() < fsi->stat().mtim())
 				{
 //					std::cout << *di << " mtime : " << di->mtim() << std::endl;
 //					std::cout << E_installed_path << " mtime : " << E_installed_path.mtim() << std::endl;
@@ -115,7 +115,7 @@ int main(int argc, char * argv[])
 				}
 			}
 		}
-		if(E_from_repo_path.exists() && (diff_lines_Esource > 0 || diff_Elibs > 0 || diff_patches > 0))
+		if(E_from_repo_path.stat().exists() && (diff_lines_Esource > 0 || diff_Elibs > 0 || diff_patches > 0))
 		{
 			std::shared_ptr<paludis::PackageIDSequence> pkgIDFromSequence((*env)[paludis::selection::AllVersionsSorted(paludis::generator::Intersection(
 																						  paludis::generator::Package((*pkgID)->name()),
@@ -165,7 +165,8 @@ int main(int argc, char * argv[])
 			if(arg_first > 0 && count == arg_first)
 				break;
 		}
-		if(paludis::run_command(paludis::Command(paludis_command_ss.str())) == 0)
+		paludis::Process paludis_process(paludis::ProcessCommand(paludis_command_ss.str()));
+		if(paludis_process.run().wait() == 0)
 		{
 			std::cout << "Paludis command ran successfully" << std::endl;
 			if(MERCommandLine::get_instance()->a_dump_command.specified())
