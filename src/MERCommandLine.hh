@@ -43,7 +43,7 @@ class MERCommandLine :
         paludis::args::LogLevelArg a_log_level;
         paludis::args::StringArg a_environment;
         paludis::args::SwitchArg a_dump_command;
-        paludis::args::StringArg a_resume_command_template;
+        paludis::args::StringArg a_resume_file;
         paludis::args::IntegerArg a_take_first;
 
         ///}

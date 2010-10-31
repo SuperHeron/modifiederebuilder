@@ -142,21 +142,12 @@ int main(int argc, char * argv[])
 		if(arg_first > 0 && pkg_to_rebuild.size() > arg_first)
 			std::cout << "Rebuilding the " << arg_first << " firsts..." << std::endl;
 		std::ostringstream paludis_command_ss;
-		if(env->distribution() == "exherbo")
-		{
-			paludis_command_ss << "cave";
-			if(MERCommandLine::get_instance()->a_log_level.specified())
-				paludis_command_ss << " --" << MERCommandLine::get_instance()->a_log_level.long_name() << " " << MERCommandLine::get_instance()->a_log_level.argument();
-			paludis_command_ss << " resolve --preserve-world";
-		}
-		else
-		{
-			paludis_command_ss << "paludis --pretend --install --preserve-world";
-			if(MERCommandLine::get_instance()->a_log_level.specified())
-				paludis_command_ss << " --" << MERCommandLine::get_instance()->a_log_level.long_name() << " " << MERCommandLine::get_instance()->a_log_level.argument();
-			if(MERCommandLine::get_instance()->a_resume_command_template.specified())
-				paludis_command_ss << " --" << MERCommandLine::get_instance()->a_resume_command_template.long_name() << " " << MERCommandLine::get_instance()->a_resume_command_template.argument();
-		}
+		paludis_command_ss << "cave";
+		if(MERCommandLine::get_instance()->a_log_level.specified())
+			paludis_command_ss << " --" << MERCommandLine::get_instance()->a_log_level.long_name() << " " << MERCommandLine::get_instance()->a_log_level.argument();
+		paludis_command_ss << " resolve --preserve-world";
+		if(MERCommandLine::get_instance()->a_resume_file.specified())
+			paludis_command_ss << " --resume-file '" << MERCommandLine::get_instance()->a_resume_file.argument() << "'";
 		unsigned int count = 0;
 		for(std::vector<std::shared_ptr<const paludis::PackageID> >::iterator pkg(pkg_to_rebuild.begin()), pkg_end(pkg_to_rebuild.end()); pkg != pkg_end; ++pkg)
 		{
@@ -173,7 +164,10 @@ int main(int argc, char * argv[])
 			{
 				std::cout << std::endl;
 				std::cout << "Build command: " << std::endl;
-				std::cout << paludis_command_ss.str() << std::endl;
+				if(MERCommandLine::get_instance()->a_resume_file.specified())
+					std::cout << "cave resume --resume-file '" << MERCommandLine::get_instance()->a_resume_file.argument() << "'" << std::endl;
+				else
+					std::cout << paludis_command_ss.str() << std::endl;
 			}
 		}
 		else
