@@ -41,7 +41,7 @@ int main(int argc, char * argv[])
     for(paludis::PackageIDSequence::ConstIterator pkgID(ids->begin()), pkgID_end(ids->end()); pkgID != pkgID_end; ++pkgID)
     {
 //    	std::cout << (*pkgID)->canonical_form(paludis::idcf_full) << std::endl;
-        paludis::FSPath vdb_dir((*pkgID)->fs_location_key()->value());
+        paludis::FSPath vdb_dir((*pkgID)->fs_location_key()->parse_value());
 		std::map<std::string, std::string> environment = loadEEnvironment(vdb_dir);
 		paludis::FSPath E_installed_path(vdb_dir);
 		std::ostringstream Ename;
